@@ -3,7 +3,7 @@
 ## About
 The tenthbit protocol is a JSON communications protocol that offers the following advantages over IRC:
 
-- Required SSL for client connections and inter-serving linking, ensuring end-to-end encryption
+- Required SSL for client connections and intra-server linking, ensuring that a valid network doesn't put bare data on the wire, though there are no guarantees
 - Optional GZip compression when supported and beneficial, e.g. between server nodes
 - Federated, decentralized authentication between independant servers, and possibly more later on
 - A baked-in account system and access-control list (ACL) for channels, distributed across nodes for reliability
