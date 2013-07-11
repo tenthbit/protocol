@@ -1,42 +1,62 @@
-# Protocol
+# Tenthbit Protocol
 
-The tenthbit protocol is a JSON chat protocol that supports the following
-advantages over IRC:
+## About
+The tenthbit protocol is a JSON communications protocol that offers the following advantages over IRC:
 
-- Required SSL for clients and server-links
-- Optional GZIP compression when supported and beneficial
-- Federated, decentralized link-paths
-- A baked-in account system
+- Required SSL for client connections and inter-serving linking, ensuring end-to-end encryption
+- Optional GZip compression when supported and beneficial, e.g. between server nodes
+- Federated, decentralized authentication between independant servers, and possibly more later on
+- A baked-in account system and access-control list (ACL) for channels, distributed across nodes for reliability
+- Support for meshed links between server nodes, reducing impact of a node failure, provided by unique identifiers attached to every packet
 
-# Federation
+## Communications
+Communications on a server are organized in to topics, much like channels on an IRC network. Topics are identified by UUIDs and by names; thus, topic names can be changed at any point. Each topic stores an ACL which determines who is authorized to complete certain actions. In addition, topics have a list of key/value pairs storing metadata such as the topic's name, a description, message format, and really anything else.
 
-At the moment, only the account system is federated (communications may be
-federated later). Essentially, an account that exists on one server (the
-account's "home" server) can be used to authenticate against other servers
-(servers which are "foreign" to that account). Once authentication succeeds,
-foreign servers are not required to fully authorize the nonlocal user as a
-local user.
+### Message formats
+A message format dictates how a client should encode and parse formatting into a topic's messages. Official formats are:
+* `plain`: plain utf-8 text. No formatting should be done. Clients may use a variable-width font when displaying text.
+* `fixed`: fixed-width utf-8 text. Like `plain`, except should be should with a fixed-width font.
+* `markdown`: utf-8 text, formatted using markdown. This will probably be default and should probably be used in discussion channels.
+* `html`: utf-8 html text, marked up using a subset of html tags - to be clarified
+* `irc`: ansi text like what would be used with an IRC server. Should be shown in a fixed-width font, and may contain mIRC-style formatting and color codes, which clients may or may not honor (but must at least strip if offering this format).
+* `binary`: raw binary octets. Note that this is not particularly efficient, as the binary string will be encoded in JSON.
 
-Accounts are specified using an email-style notation; a user `danopia` on
-a server located at `10b.it` would be globally addressable by
-`danopia@10b.it`. However, other users accessing the `10b.it` server may
-refer to the same user with simply `danopia`. Bare usernames act the same
-as usernames with the current server's name appended.
+Third-parties may invent custom formats. When doing so, starting with an above format name and appending a colon and then a proprietary name allows nonsupporting clients to use the mentioned base format to at least somewhat understand what's going on; for example, `fixed:ascii-art`. Otherwise, clients should assume `plain` as the base format.
 
-## Foreign authentication flow
-A ticket-based system is used to prevent credentials from flowing through
-potentially untrusted foreign servers. An alphanumeric ticket is generated
-by an account's home server via an established connection as per the user's
-request at any time, and must expire at some point in the future. [TODO: Pair
-a ticket with a certain remote server, and only let it work when presented by
-that certain server.]
+### Access control list
+TODO
 
-A valid ticket may be presented to a foreign server during the authentication
-flow, along with the ticket's home server. For example, `danopia@10b.it`
-received the ticket `OHMY`. `danopia` may connect to `somewhere.else` and
-request authentication with `{ticket: "OHMY", server: "10b.it"}`.
-`somewhere.else` SHOULD connect to `10b.it` (if not already connected) and
-relay the ticket. `10b.it` must reply with the corresponding username
-(in this case, `danopia`) if the ticket was valid, or an error otherwise.
-If the ticket existed, `10b.it` MUST invalidate it so that further redemption
-attempts with the same ticket will fail.
+## Federation
+At the moment, only the account system is federated (communications may be federated later). Essentially, an account that exists on one server (the account's "home" server) can be used to authenticate against other servers (servers which are "foreign" to that account). Once authentication succeeds, foreign servers are not required to fully authorize the nonlocal user as a local user.
+
+Accounts are specified using an email-style notation; a user `danopia` on a server located at `10b.it` would be globally addressable by `danopia@10b.it`. However, other users accessing the `10b.it` server may refer to the same user with simply `danopia`. Bare usernames act the same as usernames with the current server's name appended.
+
+### Foreign authentication flow
+A ticket-based system is used to prevent credentials from flowing through potentially untrusted foreign servers. An alphanumeric ticket is generated by an account's home server via an established connection as per the user's request at any time, and must expire at some point in the future. [TODO: Pair a ticket with a certain remote server, and only let it work when presented by that certain server.]
+
+A valid ticket may be presented to a foreign server during the authentication flow, along with the ticket's home server. For example, `danopia@10b.it` received the ticket `OHMY`. `danopia` may connect to `somewhere.else` and request authentication with `{ticket: "OHMY", server: "10b.it"}`. `somewhere.else` SHOULD connect to `10b.it` (if not already connected) and relay the ticket. `10b.it` must reply with the corresponding username (in this case, `danopia`) if the ticket was valid, or an error otherwise. If the ticket existed, `10b.it` MUST invalidate it so that further redemption attempts with the same ticket will fail.
+
+## Wire protocol
+The 10bit protocol is JSON-based. Every packet is serialized into a JSON representation, which is then sent over the SSL socket, terminated with a UNIX newline (`"\n"`). After the other party receives the packet and decrypts it, it can parse the JSON into whatever internal representation it likes most.
+
+The SSL transport is basic for now, though SSL keys may later be used to authorize clients to their account. When available, the protocol should be advertised by the server as `10bit/0.1` (via NPN or ALPN). A gzip transport may be enabled between SSL and the JSON by negotiating a `10bit-gzip/0.1` protocol through NPN/ALPN. A server MAY choose to accept the gzip request when available and allowed.
+
+Servers may also take advantage of the NPN/ALPN mechanism by offering an HTTP and/or SPDY service. When combined with CORS, this allows for a clean webchat implementation.
+
+### JSON payload
+Most packets have a similar base structure, consisting of:
+* `id`: key containing a unique ID for the packet. Useful for mesh linking and some context perks
+* `ts`: UNIX timestamp for when the packet was first received/processed through a server node, in milliseconds
+* `topic`: Unique ID identifying the topic that this payload is in reference to. Not present if not applicable
+* `op`: operation. Common `op`s are `ack`, `error`, `auth`, `find`, `send`, `join`, `leave`, and `meta`
+* `from`: origin of the action. May be a username (`danopia`), server (`@10b.it`), or federated user (`danopia@10b.it`).
+* `ex`: extra, `op`-specific data, in an object
+
+### Example Welcome flow
+    <-> ssl handshake, negotiation for protocol 10bit/0.1
+    <-- server ends op=welcome, ex={server: "10b.it", software: "10bit reference server/0.0.1", auth: {methods: ["password", "ticket"]}}
+    --> client sends op=auth, ex={method: "password", username: "danopia", password: "hellosecret"}
+    <-- op=ack
+    <-- op=meta, from="@10b.it", ex={...} # includes server metadata, like rules
+    <-- op=meta, from="danopia", ex={...} # includes own metadata, like favorite topics and fullname
+    <-- op=meta, from="danopia", topic="asdfasdf", ex={...} # topic metadata, also includes self in nicklist, since autojoined
