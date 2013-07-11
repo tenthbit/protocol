@@ -1,7 +1,7 @@
 # Tenthbit Protocol
 
 ## About
-The tenthbit protocol is a JSON communications protocol that offers the following advantages over IRC:
+The tenthbit protocol is a JSON-based communications protocol that offers the following advantages over IRC:
 
 - Required SSL for client connections and intra-server linking, ensuring that a valid network doesn't put bare data on the wire, though there are no guarantees
 - Optional GZip compression when supported and beneficial, e.g. between server nodes
@@ -37,7 +37,7 @@ A ticket-based system is used to prevent credentials from flowing through potent
 A valid ticket may be presented to a foreign server during the authentication flow, along with the ticket's home server. For example, `danopia@10b.it` received the ticket `OHMY`. `danopia` may connect to `somewhere.else` and request authentication with `{ticket: "OHMY", server: "10b.it"}`. `somewhere.else` SHOULD connect to `10b.it` (if not already connected) and relay the ticket. `10b.it` must reply with the corresponding username (in this case, `danopia`) if the ticket was valid, or an error otherwise. If the ticket existed, `10b.it` MUST invalidate it so that further redemption attempts with the same ticket will fail.
 
 ## Wire protocol
-The 10bit protocol is JSON-based. Every packet is serialized into a JSON representation, which is then sent over the SSL socket, terminated with a UNIX newline (`"\n"`). After the other party receives the packet and decrypts it, it can parse the JSON into whatever internal representation it likes most.
+The 10bit protocol is JSON-based, and transported via a TLS connection to **TCP port `10317`**. Every packet is serialized into a JSON representation, which is then sent over the SSL socket, terminated with a UNIX newline (`"\n"`). After the other party receives the packet and decrypts it, it can parse the JSON into whatever internal representation it likes most.
 
 The SSL transport is basic for now, though SSL keys may later be used to authorize clients to their account. When available, the protocol should be advertised by the server as `10bit/0.1` (via NPN or ALPN). A gzip transport may be enabled between SSL and the JSON by negotiating a `10bit-gzip/0.1` protocol through NPN/ALPN. A server MAY choose to accept the gzip request when available and allowed.
 
