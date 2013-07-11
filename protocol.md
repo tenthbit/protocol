@@ -64,7 +64,7 @@ Most packets have a similar base structure, consisting of:
 * `act`: Topic activity. Such activity is usually transient to the server. Activity has a `type` extra. Some common types:
     * `msg`: Most common type. Used to mean a normal message has been sent, and is in the `data` extra. May refer to a previous message by ID using the `context` extra.
     * `action`: Like `msg`, except displayed like IRC `/me`, that is, prefixed with the sender's username.
-    * `state`: May be used to convey typing state. Should only be used in smaller channels or otherwise when indicated by some channel flag. The extra `typing` would be `yes`, `no`, or `hastext` (as in, text has been entered, but the user is not actively adding to it).
+    * `state`: May be used to convey typing state. Should only be used in smaller channels or otherwise when indicated by some channel flag. The `typing` extra would be `true` or `false`, and the `hastext` extra would also be boolean (as in, text has been entered, but the user is not actively adding to it). If either is absent, they're assumed false.
     * `revise`: Like `msg`, has `data` and `context`; however, instead of replying to a message, `revise` requests to replace the older message's data. If a client decides to honor the revision (using criteria such as being by the same user and a certain timeframe ago), it should visually convey that the message was modified, with some way to view past revisions.
 
 ### Example Welcome flow
