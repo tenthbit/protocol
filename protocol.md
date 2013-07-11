@@ -41,22 +41,37 @@ The 10bit protocol is JSON-based. Every packet is serialized into a JSON represe
 
 The SSL transport is basic for now, though SSL keys may later be used to authorize clients to their account. When available, the protocol should be advertised by the server as `10bit/0.1` (via NPN or ALPN). A gzip transport may be enabled between SSL and the JSON by negotiating a `10bit-gzip/0.1` protocol through NPN/ALPN. A server MAY choose to accept the gzip request when available and allowed.
 
-Servers may also take advantage of the NPN/ALPN mechanism by offering an HTTP and/or SPDY service. When combined with CORS, this allows for a clean webchat implementation.
+Servers may also take advantage of the NPN/ALPN mechanism by offering an HTTP and/or SPDY transport. When combined with CORS, this allows for a clean webchat implementation. Consider that CORS may require handling an OPTIONS request in addition to the websocket's UPGRADE request.
 
 ### JSON payload
 Most packets have a similar base structure, consisting of:
-* `id`: ID; key containing a unique ID for the packet. Useful for mesh linking and some context perks
+* `id`: ID; key containing a unique ID for the *action* which caused the packet. Useful for mesh linking and some context perks
 * `ts`: timestamp; UNIX timestamp for when the packet was first received/processed through a server node, in milliseconds
 * `tp`: topic; Unique ID identifying the topic that this payload is in reference to. Not present if not applicable
-* `op`: operation; Common `op`s are `ack`, `error`, `auth`, `find`, `send`, `join`, `leave`, and `meta`
+* `op`: operation; Common `op`s are `ack`, `error`, `auth`, `find`, `act`, `join`, `leave`, and `meta`
 * `sr`: source; origin of the action. May be a username (`danopia`), server (`@10b.it`), or federated user (`danopia@10b.it`).
 * `ex`: extra; `op`-specific data, in an object
 
+### Operations
+* `welcome`: Sent by the server to initiate the connection. Contains limited server metadata, and more importantly, an array of supported authentication methods in the `auth` extra.
+* `auth`: Any authentication-related packet, other than the final `ack` or `error`. More details TODO. Official methods may include `password`, `ticket`, `anonymous`, `twostep`, and `ssl`.
+* `ack`: Every packet sent by the client needs to have some sort of response. If there isn't one, an `ack` is sent instead. `ack`s specify what `op` they are for in the `for` extra.
+* `meta`: Used to transfer metadata, which is basically any data. Servers, clients, and topics all have metadata. At the moment, this `op` is only able to dump all metadata, which is stored directly in `ex`.
+* `error`: Attempts to convey some sort of protocol failure. May be followed by a dropped connection. TODO
+* `join`: Conveys that a user has been added to a topic's userlist. The user in question is named in the `user` extra. This may or may not be merged in to `meta` at some point.
+* `leave`: Like `join`, except that the user has been removed.
+* `find`: Searches for objects (users, topics) by metadata. TODO
+* `act`: Topic activity. Such activity is usually transient to the server. Activity has a `type` extra. Some common types:
+    * `msg`: Most common type. Used to mean a normal message has been sent, and is in the `data` extra. May refer to a previous message by ID using the `context` extra.
+    * `action`: Like `msg`, except displayed like IRC `/me`, that is, prefixed with the sender's username.
+    * `state`: May be used to convey typing state. Should only be used in smaller channels or otherwise when indicated by some channel flag. The extra `typing` would be `yes`, `no`, or `hastext` (as in, text has been entered, but the user is not actively adding to it).
+    * `revise`: Like `msg`, has `data` and `context`; however, instead of replying to a message, `revise` requests to replace the older message's data. If a client decides to honor the revision (using criteria such as being by the same user and a certain timeframe ago), it should visually convey that the message was modified, with some way to view past revisions.
+
 ### Example Welcome flow
     <-> ssl handshake, negotiation for protocol 10bit/0.1
-    <-- server ends op=welcome, ex={server: "10b.it", software: "10bit reference server/0.0.1", now: 1373552037052, auth: ["password", "ticket"]}
+    <-- server ends op=welcome, ex={server: "10b.it", software: "10bit reference server/0.0.1", now: 1373552037052, auth: ["password", "ticket", "anonymous"]}
     --> client sends op=auth, ex={method: "password", username: "danopia", password: "hellosecret"}
     <-- op=ack, ex={for: "auth"}
     <-- op=meta, sr="@10b.it", ex={...} # includes server metadata, like rules
     <-- op=meta, sr="danopia", ex={...} # includes own metadata, like favorite topics and fullname
-    <-- op=meta, sr="danopia", tp="asdfasdf", ex={...} # topic metadata, also includes self in nicklist, since autojoined
+    <-- op=meta, sr="@10b.it", tp="asdfasdf", ex={...} # topic metadata, also includes self in nicklist, since autojoined
