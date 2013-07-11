@@ -45,18 +45,18 @@ Servers may also take advantage of the NPN/ALPN mechanism by offering an HTTP an
 
 ### JSON payload
 Most packets have a similar base structure, consisting of:
-* `id`: key containing a unique ID for the packet. Useful for mesh linking and some context perks
-* `ts`: UNIX timestamp for when the packet was first received/processed through a server node, in milliseconds
-* `topic`: Unique ID identifying the topic that this payload is in reference to. Not present if not applicable
-* `op`: operation. Common `op`s are `ack`, `error`, `auth`, `find`, `send`, `join`, `leave`, and `meta`
-* `from`: origin of the action. May be a username (`danopia`), server (`@10b.it`), or federated user (`danopia@10b.it`).
-* `ex`: extra, `op`-specific data, in an object
+* `id`: ID; key containing a unique ID for the packet. Useful for mesh linking and some context perks
+* `ts`: timestamp; UNIX timestamp for when the packet was first received/processed through a server node, in milliseconds
+* `tp`: topic; Unique ID identifying the topic that this payload is in reference to. Not present if not applicable
+* `op`: operation; Common `op`s are `ack`, `error`, `auth`, `find`, `send`, `join`, `leave`, and `meta`
+* `sr`: source; origin of the action. May be a username (`danopia`), server (`@10b.it`), or federated user (`danopia@10b.it`).
+* `ex`: extra; `op`-specific data, in an object
 
 ### Example Welcome flow
     <-> ssl handshake, negotiation for protocol 10bit/0.1
     <-- server ends op=welcome, ex={server: "10b.it", software: "10bit reference server/0.0.1", now: 1373552037052, auth: ["password", "ticket"]}
     --> client sends op=auth, ex={method: "password", username: "danopia", password: "hellosecret"}
     <-- op=ack, ex={for: "auth"}
-    <-- op=meta, from="@10b.it", ex={...} # includes server metadata, like rules
-    <-- op=meta, from="danopia", ex={...} # includes own metadata, like favorite topics and fullname
-    <-- op=meta, from="danopia", topic="asdfasdf", ex={...} # topic metadata, also includes self in nicklist, since autojoined
+    <-- op=meta, sr="@10b.it", ex={...} # includes server metadata, like rules
+    <-- op=meta, sr="danopia", ex={...} # includes own metadata, like favorite topics and fullname
+    <-- op=meta, sr="danopia", tp="asdfasdf", ex={...} # topic metadata, also includes self in nicklist, since autojoined
