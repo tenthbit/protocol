@@ -54,9 +54,9 @@ Most packets have a similar base structure, consisting of:
 
 ### Example Welcome flow
     <-> ssl handshake, negotiation for protocol 10bit/0.1
-    <-- server ends op=welcome, ex={server: "10b.it", software: "10bit reference server/0.0.1", auth: {methods: ["password", "ticket"]}}
+    <-- server ends op=welcome, ex={server: "10b.it", software: "10bit reference server/0.0.1", now: 1373552037052, auth: ["password", "ticket"]}
     --> client sends op=auth, ex={method: "password", username: "danopia", password: "hellosecret"}
-    <-- op=ack
+    <-- op=ack, ex={for: "auth"}
     <-- op=meta, from="@10b.it", ex={...} # includes server metadata, like rules
     <-- op=meta, from="danopia", ex={...} # includes own metadata, like favorite topics and fullname
     <-- op=meta, from="danopia", topic="asdfasdf", ex={...} # topic metadata, also includes self in nicklist, since autojoined
