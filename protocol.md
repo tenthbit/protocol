@@ -69,7 +69,7 @@ Most packets have a similar base structure, consisting of:
 
 ### Example Welcome flow
     <-> ssl handshake, negotiation for protocol 10bit/0.1
-    <-- server ends op=welcome, ex={server: "10b.it", software: "10bit reference server/0.0.1", now: 1373552037052, auth: ["password", "ticket", "anonymous"]}
+    <-- server sends op=welcome, ex={server: "10b.it", software: "10bit reference server/0.0.1", now: 1373552037052, auth: ["password", "ticket", "anonymous"]}
     --> client sends op=auth, ex={method: "password", username: "danopia", password: "hellosecret"}
     <-- op=ack, ex={for: "auth"}
     <-- op=meta, sr="@10b.it", ex={...} # includes server metadata, like rules
