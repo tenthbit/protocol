@@ -50,7 +50,7 @@ Most packets have a similar base structure, consisting of:
 * `tp`: topic; Unique ID identifying the topic that this payload is in reference to. Not present if not applicable
 * `op`: operation; Common `op`s are `ack`, `error`, `auth`, `find`, `act`, `join`, `leave`, and `meta`
 * `sr`: source; origin of the action. May be a username (`danopia`), server (`@10b.it`), or federated user (`danopia@10b.it`).
-* `ex`: extra; `op`-specific data, in an object
+* `ex`: extra; `op`-specific data, in an object. Data in `ex` that can not be ignored is the same for all instances of a particular `op`. The data in `ex` MUST be transmitted as it was recieved by the server. `ex` MAY contain data other than what is set out in this document, but it will always be safe to ignore it and simply pass it on to the clients if acting as a server, or simply not handle if acting as a client.
 
 ### Operations
 * `welcome`: Sent by the server to initiate the connection. Contains limited server metadata, and more importantly, an array of supported authentication methods in the `auth` extra.
@@ -61,12 +61,23 @@ Most packets have a similar base structure, consisting of:
 * `join`: Conveys that a user has been added to a topic's userlist. The user in question is named in the `user` extra. This may or may not be merged in to `meta` at some point.
 * `leave`: Like `join`, except that the user has been removed.
 * `find`: Searches for objects (users, topics) by metadata. TODO
-* `act`: Topic activity. Such activity is usually transient to the server. Activity has a `type` extra. Some common types:
+* `act`: Topic activity. Such activity is usually transient to the server. Activity has a` type` extra. Some common types:
     * `msg`: Most common type. Used to mean a normal message has been sent, and is in the `data` extra. May refer to a previous message by ID using the `context` extra.
     * `action`: Like `msg`, except displayed like IRC `/me`, that is, prefixed with the sender's username.
     * `state`: May be used to convey typing state. Should only be used in smaller channels or otherwise when indicated by some channel flag. The `typing` extra would be `true` or `false`, and the `hastext` extra would also be boolean (as in, text has been entered, but the user is not actively adding to it). If either is absent, they're assumed false.
     * `revise`: Like `msg`, has `data` and `context`; however, instead of replying to a message, `revise` requests to replace the older message's data. If a client decides to honor the revision (using criteria such as being by the same user and a certain timeframe ago), it should visually convey that the message was modified, with some way to view past revisions.
 
+### Operations and their required `ex` fields
+|Operation | Required Fields |
+|----------|:----------------|
+|`welcome` | server (string), software (string), now (unixtime), auth ([string])|
+|`ack`     | for (string) |
+|`meta`    | data ({string:string}) <-- (Tentative. TODO) |
+|`error`   | errnum (int), errmsg (string) (Tentative. TODO)|
+|`join`    | user (string)|
+|`leave`   | user (string)|
+|`find`    | TODO|
+|`act`     | type(string), data (string), context(string), typing (bool), hastext(bool) (Tentative. TODO)|
 ### Example Welcome flow
     <-> ssl handshake, negotiation for protocol 10bit/0.1
     <-- server sends op=welcome, ex={server: "10b.it", software: "10bit reference server/0.0.1", now: 1373552037052, auth: ["password", "ticket", "anonymous"]}
