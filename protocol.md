@@ -62,7 +62,7 @@ Most packets have a similar base structure, consisting of:
 * `tp`: topic; Unique ID identifying the topic that this payload is in reference to. Not present if not applicable
 * `op`: operation; Common `op`s are `ack`, `error`, `auth`, `find`, `act`, `join`, `leave`, and `meta`
 * `sr`: source; origin of the action. May be a username (`danopia`), server (`@10b.it`), or federated user (`danopia@10b.it`).
-* `ex`: extra; `op`-specific data, in an object. Data in `ex` that can not be ignored is the same for all instances of a particular `op`. The data in `ex` MUST be transmitted as it was recieved by the server. `ex` MAY contain data other than what is set out in this document, but it will always be safe to ignore it and simply pass it on to the clients if acting as a server, or simply not handle if acting as a client.
+* `ex`: extra; `op`-specific data, in an object. Data in `ex` that can not be ignored is the same for all instances of a particular `op`. The data in `ex` MUST be transmitted as it was recieved by the server - that is, it should be considered to be immutable. `ex` MAY contain data other than what is set out in this document, but it will always be safe to ignore it and simply pass it on to the clients if acting as a server, or simply not handle if acting as a client. 
 
 
 ### Operations
@@ -70,7 +70,9 @@ Most packets have a similar base structure, consisting of:
 * `welcome`: Sent by the server to initiate the connection. Contains limited server metadata, and more importantly, an array of supported authentication methods in the `auth` extra.
 * `auth`: Any authentication-related packet, other than the final `ack` or `error`. More details TODO. Official methods may include `password`, `ticket`, `anonymous`, `twostep`, and `ssl`.
 * `ack`: Every packet sent by the client needs to have some sort of response. If there isn't one, an `ack` is sent instead. `ack`s specify what `op` they are for in the `for` extra.
-* `meta`: Used to transfer metadata, which is basically any data. Servers, clients, and topics all have metadata. At the moment, this `op` is only able to dump all metadata, which is stored directly in `ex`.
+*  There are two operations ued to transfer metadata, which is basically any data. Servers, clients, and topics all have metadata.
+   * `sendmeta`, what it says on the tin. Indicates that the payload contains metadata about an object (the ID of that object is stored in the `target` extra), which is stored in the `data` extra. Includes a `type` extra to indicate whether the metadata is on a server, client, or topic.
+   * `requestmeta`, again, straightforward. Indicates a request for metadata about an object, the ID of that object is stored in the `target` extra. Includes a `type` extra like `sendmeta`
 * `error`: Attempts to convey some sort of protocol failure. May be followed by a dropped connection. TODO
 * `join`: Conveys that a user has been added to a topic's userlist. The user in question is named in the `user` extra. This may or may not be merged in to `meta` at some point.
 * `leave`: Like `join`, except that the user has been removed.
@@ -88,7 +90,8 @@ Most packets have a similar base structure, consisting of:
 |----------|:----------------|
 |`welcome` | `server` (string), `software` (string), `now` (number (usually long)), `auth` ([string])|
 |`ack`     | `for` (string) |
-|`meta`    | `data` ({string:string}) <-- (Tentative. TODO) |
+|`sendmeta`| `target` (string), `data` ({string:string}), `type` (string) (Tentative. TODO) |
+|`requestmeta`| `target` (string), `type` (string) (Tentative. TODO) |
 |`error`   | `errnum` (int), `errmsg` (string) (Tentative. TODO)|
 |`join`    | `user` (string)|
 |`leave`   | `user` (string)|
