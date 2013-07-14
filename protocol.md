@@ -77,11 +77,11 @@ Most packets have a similar base structure, consisting of:
 * `join`: Conveys that a user has been added to a topic's userlist. The user in question is named in the `user` extra. This may or may not be merged in to `meta` at some point.
 * `leave`: Like `join`, except that the user has been removed.
 * `find`: Searches for objects (users, topics) by metadata. TODO
-* `act`: Topic activity. Such activity is usually transient to the server. Activity has a` type` extra. Some common types:
-    * `msg`: Most common type. Used to mean a normal message has been sent, and is in the `data` extra. May refer to a previous message by ID using the `context` extra.
-    * `action`: Like `msg`, except displayed like IRC `/me`, that is, prefixed with the sender's username.
-    * `state`: May be used to convey typing state. Should only be used in smaller channels or otherwise when indicated by some channel flag. The `typing` extra would be `true` or `false`, and the `hastext` extra would also be boolean (as in, text has been entered, but the user is not actively adding to it). If either is absent, they're assumed false.
-    * `revise`: Like `msg`, has `data` and `context`; however, instead of replying to a message, `revise` requests to replace the older message's data. If a client decides to honor the revision (using criteria such as being by the same user and a certain timeframe ago), it should visually convey that the message was modified, with some way to view past revisions.
+* Actions: Currently there are four types of action operations
+    * `act-msg`: Most common type. Used to mean a normal message has been sent, and is in the `data` extra. May refer to a previous message by ID using the `context` extra.
+    * `act-action`: Like `act-msg`, except displayed like IRC `/me`, that is, prefixed with the sender's username.
+    * `act-state`: May be used to convey typing state. Should only be used in smaller channels or otherwise when indicated by some channel flag. The `typing` extra would be `true` or `false`, and the `hastext` extra would also be boolean (as in, text has been entered, but the user is not actively adding to it). If either is absent, they're assumed false.
+    * `act-revise`: Like `act-msg`, has `data` and `context`; however, instead of replying to a message, `act-revise` requests to replace the older message's data. If a client decides to honor the revision (using criteria such as being by the same user and a certain timeframe ago), it should visually convey that the message was modified, with some way to view past revisions.
 
 
 ### Operations and their required `ex` fields
@@ -96,7 +96,10 @@ Most packets have a similar base structure, consisting of:
 |`join`    | `user` (string)|
 |`leave`   | `user` (string)|
 |`find`    | TODO|
-|`act`     | `type` (string), `data` (string), `context` (string), `typing` (bool), `hastext` (bool) (Tentative. TODO)|
+|`act-msg`     | `data` (string), `context` (string)|
+|`act-action`| `data` (string), `context` (string)|
+|`act-state`| `typing` (bool), `hastext` (bool)|
+|`act-revise`| `data` (string), `context` (string)|
 
 
 ### Example Welcome flow
