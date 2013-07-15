@@ -21,6 +21,7 @@ A message format dictates how a client should encode and parse formatting into a
 * `fixed`: fixed-width utf-8 text. Like `plain`, except should be shown with a fixed-width font.
 * `markdown`: utf-8 text, formatted using markdown. This will probably be default and should probably be used in discussion channels.
 * `html`: utf-8 html text, marked up using a subset of html tags - to be clarified
+* `latex`: A message containing valid LaTeX.
 * `irc`: ansi text like what would be used with an IRC server. Should be shown in a fixed-width font, and may contain mIRC-style formatting and color codes, which clients may or may not honor (but must at least strip if offering this format).
 * `binary`: raw binary octets. Note that this is not particularly efficient, as the binary string will be encoded in JSON.
 
