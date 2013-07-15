@@ -48,7 +48,7 @@ A valid ticket may be presented to a foreign server during the authentication fl
 
 ## Wire protocol
 
-The 10bit protocol is JSON-based, and transported via a TLS connection to **TCP port `10317`**. Every packet is serialized into a JSON representation, which is then sent over the SSL socket, terminated with a UNIX newline (`"\n"`). After the other party receives the packet and decrypts it, it can parse the JSON into whatever internal representation it likes most.
+The 10bit protocol is JSON-based, and transported via a TLS connection to **TCP port `10817`**. Every packet is serialized into a JSON representation, which is then sent over the SSL socket, terminated with a UNIX newline (`"\n"`). After the other party receives the packet and decrypts it, it can parse the JSON into whatever internal representation it likes most.
 
 The SSL transport is basic for now, though SSL keys may later be used to authorize clients to their account. When available, the protocol should be advertised by the server as `10bit/0.1` (via NPN or ALPN). A gzip transport may be enabled between SSL and the JSON by negotiating a `10bit-gzip/0.1` protocol through NPN/ALPN. A server MAY choose to accept the gzip request when available and allowed.
 
