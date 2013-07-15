@@ -20,7 +20,7 @@ A message format dictates how a client should encode and parse formatting into a
 * `plain`: plain utf-8 text. No formatting should be done. Clients may use a variable-width font when displaying text.
 * `fixed`: fixed-width utf-8 text. Like `plain`, except should be shown with a fixed-width font.
 * `markdown`: utf-8 text, formatted using markdown. This will probably be default and should probably be used in discussion channels.
-* `html`: utf-8 html text, marked up using a subset of html tags - to be clarified
+* `html`: utf-8 html markup, using a subset of html tags [to be clarified]
 * `latex`: A message containing valid LaTeX.
 * `irc`: ansi text like what would be used with an IRC server. Should be shown in a fixed-width font, and may contain mIRC-style formatting and color codes, which clients may or may not honor (but must at least strip if offering this format).
 * `binary`: raw binary octets. Note that this is not particularly efficient, as the binary string will be encoded in JSON.
@@ -51,17 +51,17 @@ A valid ticket may be presented to a foreign server during the authentication fl
 
 The 10bit protocol is JSON-based, and transported via a TLS connection to **TCP port `10817`**. Every packet is serialized into a JSON representation, which is then sent over the SSL socket, terminated with a UNIX newline (`"\n"`). After the other party receives the packet and decrypts it, it can parse the JSON into whatever internal representation it likes most.
 
-The SSL transport is basic for now, though SSL keys may later be used to authorize clients to their account. When available, the protocol should be advertised by the server as `10bit/0.1` (via NPN or ALPN). A gzip transport may be enabled between SSL and the JSON by negotiating a `10bit-gzip/0.1` protocol through NPN/ALPN. A server MAY choose to accept the gzip request when available and allowed.
+The SSL transport is basic for now, though SSL keys may later be used to authorize clients to their account. When available, the protocol should be advertised by the server as `10bit` (via NPN or ALPN). A gzip transport may be enabled between SSL and the JSON by negotiating a `10bit-gzip` protocol through NPN/ALPN. A server MAY choose to accept the gzip request when available and allowed.
 
-Servers may also take advantage of the NPN/ALPN mechanism by offering an HTTP and/or SPDY transport. When combined with CORS, this allows for a clean webchat implementation. Consider that CORS may require handling an OPTIONS request in addition to the websocket's UPGRADE request.
+Servers may also take advantage of the NPN/ALPN mechanism by offering a websocket transport. This allows for a clean webchat implementation. Consider that it's up to the server to deny webchats running on unknown domains, if desired. Websockets are a message-based protocol, unlike TCP's stream-based, so JSON should not be newline-terminated.
 
 ### JSON payload
 
 Most packets have a similar base structure, consisting of:
-* `id`: ID; key containing a unique ID for the *action* which caused the packet. Useful for mesh linking and some context perks
-* `ts`: timestamp; UNIX timestamp for when the packet was first received/processed through a server node, in milliseconds
+* `id`: ID; key containing a unique ID for the *action* which caused the packet. Useful for mesh linking and some context perks.
+* `ts`: timestamp; UNIX timestamp for when the packet was first received/processed through a server node, in milliseconds.
 * `rm`: room; Unique ID (hex string) identifying the topic that this payload is in reference to. Not present if not applicable.
-* `op`: operation; Common `op`s are `ack`, `error`, `auth`, `find`, `act`, `join`, `leave`, and `meta`
+* `op`: operation; Common `op`s are `act`, `auth`, `join`, `leave`, and `meta`.
 * `sr`: source; origin of the action. May be a username (`danopia`), server (`@10b.it`), or federated user (`danopia@10b.it`).
 * `ex`: extra; `op`-specific data, in an object. Data in `ex` that can not be ignored is the same for all instances of a particular `op`. The data in `ex` MUST be transmitted as it was recieved by the server - that is, it should be considered to be immutable. `ex` MAY contain data other than what is set out in this document, but it will always be safe to ignore it and simply pass it on to the clients if acting as a server, or simply not handle if acting as a client. 
 
@@ -69,54 +69,51 @@ Most packets have a similar base structure, consisting of:
 ### Operations
 
 * `welcome`: Sent by the server to initiate the connection. Contains limited server metadata, and more importantly, an array of supported authentication methods in the `auth` extra.
-* `auth`: Any authentication-related packet, other than the final `ack` or `error`. More details TODO. Official methods may include `password`, `ticket`, `anonymous`, `twostep`, and `ssl`.
-* `ack`: Every packet sent by the client needs to have some sort of response. If there isn't one, an `ack` is sent instead. `ack`s specify what `op` they are for in the `for` extra.
-*  There are two operations ued to transfer metadata, which is basically any data. Servers, clients, and topics all have metadata.
-   * `meta`, what it says on the tin. Indicates that the payload contains metadata about an object (the ID of that object is stored in the `target` extra), which is stored in the `data` extra. Includes a `type` extra to indicate whether the metadata is on a server, client, or topic.
-   * `meta-get`, again, straightforward. Indicates a request for metadata about an object, the ID of that object is stored in the `target` extra. Includes a `type` extra like `sendmeta`
+* `auth`: Any authentication-related packet that isn't an `error`. More details TODO. Official methods may include `password`, `ticket`, `anonymous`, `twostep`, and `ssl`.
+* `meta`, what it says on the tin. Indicates that the payload contains metadata about an object (the ID of that object is stored in the `target` extra), which is stored in the `data` extra. Includes a `type` extra to indicate whether the metadata is on a server, client, or topic.
+* `meta-get`, again, straightforward. Indicates a request for metadata about an object, the ID of that object is stored in the `target` extra. Includes a `type` extra like `sendmeta`
 * `error`: Attempts to convey some sort of protocol failure. May be followed by a dropped connection. TODO
-* `join`: Conveys that a user has been added to a topic's userlist. The user in question is named in the `user` extra. This may or may not be merged in to `meta` at some point.
-* `leave`: Like `join`, except that the user has been removed.
-* `find`: Searches for objects (users, topics) by metadata. TODO
-* `act`: Activity. When extra `type` is `msg`, this is used to mean a normal message has been sent, and is in the `data` extra. May refer to a previous message by ID using the `context` extra.
+* `join`: Sent by a client to request to join a room, and sent by a server to convey that a user has been added to a room's userlist. `ex` may contain arbitrary data. Acknowledgement is in the form of an `error` opcode, or a response `join` with an `isack` extra boolean set to true.
+* `leave`: Like `join`, except that the user has been removed. When no room is specified in the `rm` field, then `leave` is interpreted by a server as a requested to cleanly disconnect, and by clients as a client disconnecting from the server (similar to IRC's `QUIT`). A valid packet to disconnect from the server is `{"op":"leave"}`.
+* `find`: Searches for objects (users, topics) by metadata. #TODO
+* `act`: Room activity. Extras are mostly arbitrary, but a few key ones are listed below. Acknowledgement is in the form of an `error` opcode, or a response `join` with an `isack` extra boolean set to true.
+  * A textual message is usually included in the `message` string extra.
+  * A `context` string extra may be set to a previous packet's `id` field, defining a relationship between the two messages.
+  * When `context` is set, an `isrevision` boolean extra can be true, asking clients to replace the older activity with the current one. Revisions should not fundamentally change the activity structure, but this is not illegal yet.
+  * When the activity includes a message, setting `isaction` to true means the the message is in the third person and should be prefixed with the sender's name when shown. See also: IRC's `/me` command.
+  * `istyping` and `hastext` boolean extras can be used to convey if a user is currently editing a message or has an unsent message entered. These are often sent without other extras.
 
-IGNOREME #TODO
-* `act-action`: Like `act-msg`, except displayed like IRC `/me`, that is, prefixed with the sender's username.
-* `act-state`: May be used to convey typing state. Should only be used in smaller channels or otherwise when indicated by some channel flag. The `typing` extra would be `true` or `false`, and the `hastext` extra would also be boolean (as in, text has been entered, but the user is not actively adding to it). If either is absent, they're assumed false.
-* `act-revise`: Like `act-msg`, has `data` and `context`; however, instead of replying to a message, `act-revise` requests to replace the older message's data. If a client decides to honor the revision (using criteria such as being by the same user and a certain timeframe ago), it should visually convey that the message was modified, with some way to view past revisions.
+### Operations and their common `ex` fields
 
-
-### Operations and their required `ex` fields
-
-|Operation | Required Fields |
+|Operation | Common Fields |
 |----------|:----------------|
-|`welcome` | `server` (string), `software` (string), `now` (number (usually long)), `auth` ([string])|
-|`ack`     | `for` (string) |
-|`meta`| `target` (string), `data` ({string:string}), `type` (string) (Tentative. TODO) |
+|`welcome` | `server` (string), `software` (string), `auth` ([string])|
+|`auth`    | `isack` (boolean), `method` (string)|
+|`meta`    | `target` (string), `data` ({string:string}), `type` (string) (Tentative. TODO) |
 |`meta-get`| `target` (string), `type` (string) (Tentative. TODO) |
 |`error`   | `errnum` (int), `errmsg` (string) (Tentative. TODO)|
-|`join`    | `user` (string)|
-|`leave`   | `user` (string)|
+|`join`    | `isack` (boolean)|
+|`leave`   | `isack` (boolean)|
 |`find`    | TODO|
-|`act`     | `data` (string), `context` (string)|
-|`act-action`| `data` (string), `context` (string)|
-|`act-state`| `typing` (bool), `hastext` (bool)|
-|`act-revise`| `data` (string), `context` (string)|
+|`act`     | `isack` (boolean), `message` (string)|
 
 
-### Example Welcome flow
+## Example Socket Converstions
 
+### Handshake
 ```
 <-> ssl handshake, negotiation for protocol 10bit/0.1
-<-- server sends op=welcome, ex={server: "10b.it", software: "10bit reference server/0.0.1", now: 1373552037052, auth: ["password", "ticket", "anonymous"]}
+<-- server sends op=welcome, id="3", ts=234297552342, ex={server: "10b.it", software: "10bit reference server/0.0.1", now: 1373552037052, auth: ["password", "ticket", "anonymous"]}
 --> client sends op=auth, ex={method: "password", username: "danopia", password: "hellosecret"}
-<-- op=ack, ex={for: "auth"}
-<-- op=meta, sr="@10b.it", ex={...} # includes own metadata, like favorite topics and fullname
-<-- op=meta, sr="@10b.it", tp="deadbeef", ex={...} # topic metadata, also includes self in nicklist, since autojoined
+<-- op=auth, id="6", ts=234298352352, ex={method: "password", username: "danopia", isack: true}
+<-- op=meta, id="7", ts=234298352353, sr="@10b.it", ex={...} # includes own metadata, like favorite topics and fullname
+<-- op=join, id="8", ts=234298352364, sr="danopia", rm="deadbeef" # sent to everyone in room, since autojoined
+<-- op=meta, id="9", ts=234298352366, sr="@10b.it", rm="deadbeef", ex={...} # topic metadata, also includes self in nicklist
 ```
 
-### Example message
+### Conversation
 ```
---> op=act, rm=deadbeef, ex={type: "msg", data: "message goes here"}
-<-- op=act, rm=deadbeef, ts=234298352352, sr=lonestarr, ex={type: "msg", data: "message goes here", isack: true}
+--> op=act, rm="deadbeef", ex={type: "msg", data: "message goes here"}
+<-- op=act, id="59", rm="deadbeef", ts=234298362352, sr="lonestarr", ex={message: "message goes here", isack: true}
+<-- op=act, id="63", rm="deadbeef", ts=234298366252, sr="bender",    ex={message: "response goes here"}
 ```
