@@ -68,7 +68,7 @@ Most packets have a similar base structure, consisting of:
 
 ### Operations
 
-* `welcome`: Sent by the server to initiate the connection. Contains limited server metadata, and more importantly, an array of supported authentication methods in the `auth` extra.
+* `welcome`: Sent by the server to initiate the connection. Contains limited server metadata, and more importantly, an array of supported authentication method names (array of strings) in the `auth` extra. Two additional extras are required: `server` and `software`; respectively, the hostname of the server, and the name and version of the software running it (e.g. `"10bitd.js/0.1"`). Both are strings.
 * `auth`: Any authentication-related packet that isn't an `error`. More details TODO. Official methods may include `password`, `ticket`, `anonymous`, `twostep`, and `ssl`.
 * `meta`, what it says on the tin. Indicates that the payload contains metadata about an object (the ID of that object is stored in the `target` extra), which is stored in the `data` extra. Includes a `type` extra to indicate whether the metadata is on a server, client, or topic.
 * `meta-get`, again, straightforward. Indicates a request for metadata about an object, the ID of that object is stored in the `target` extra. Includes a `type` extra like `sendmeta`
