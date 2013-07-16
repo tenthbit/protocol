@@ -113,7 +113,7 @@ Most packets have a similar base structure, consisting of:
 
 ### Conversation
 ```
---> op=act, rm="deadbeef", ex={type: "msg", data: "message goes here"}
+--> op=act, rm="deadbeef", ex={message: "message goes here"}
 <-- op=act, id="59", rm="deadbeef", ts=234298362352, sr="lonestarr", ex={message: "message goes here", isack: true}
 <-- op=act, id="63", rm="deadbeef", ts=234298366252, sr="bender",    ex={message: "response goes here"}
 ```
