@@ -74,7 +74,8 @@ Most packets have a similar base structure, consisting of:
 * `meta-get`, again, straightforward. Indicates a request for metadata about an object, the ID of that object is stored in the `target` extra. Includes a `type` extra like `sendmeta`
 * `error`: Attempts to convey some sort of protocol failure. May be followed by a dropped connection. TODO
 * `join`: Sent by a client to request to join a room, and sent by a server to convey that a user has been added to a room's userlist. `ex` may contain arbitrary data. Acknowledgement is in the form of an `error` opcode, or a response `join` with an `isack` extra boolean set to true.
-* `leave`: Like `join`, except that the user has been removed. When no room is specified in the `rm` field, then `leave` is interpreted by a server as a requested to cleanly disconnect, and by clients as a client disconnecting from the server (similar to IRC's `QUIT`). A valid packet to disconnect from the server is `{"op":"leave"}`.
+* `leave`: Like `join`, except that the user has been removed.
+* `disconnect`: Similar to IRC's `QUIT`, `disconnect` can be sent by a client to request a clean disconnection from the server, or sent by a server to relay that a client has been disconnected (cleanly or not). A valid packet to disconnect from the server is `{"op":"disconnect"}`.
 * `find`: Searches for objects (users, topics) by metadata. #TODO
 * `act`: Room activity. Extras are mostly arbitrary, but a few key ones are listed below. Acknowledgement is in the form of an `error` opcode, or a response `join` with an `isack` extra boolean set to true.
   * A textual message is usually included in the `message` string extra.
