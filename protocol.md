@@ -4,13 +4,14 @@
 
 The tenthbit protocol is a JSON-based communications protocol that offers the following advantages over IRC:
 
-- Required SSL for client connections and intra-server linking, ensuring that a valid network doesn't put bare data on the wire, though there are no guarantees
+- Required SSL for client connections and intra-server linking, ensuring that a valid network doesn't put bare data on the wire
 - Optional GZip compression when supported and beneficial, e.g. between server nodes
 - Federated, decentralized authentication between independant servers, and possibly more later on
 - A baked-in account system and access-control list (ACL) for channels, distributed across nodes for reliability
 - Support for meshed links between server nodes, reducing impact of a node failure, provided by unique identifiers attached to every packet
 
 ## Communications
+
 Communications on a server are organized in to topics, much like channels on an IRC network. Topics are identified by UUIDs and by names; thus, topic names can be changed at any point. Each topic stores an ACL which determines who is authorized to complete certain actions. In addition, topics have a list of key/value pairs storing metadata such as the topic's name, a description, message format, and really anything else.
 
 
@@ -102,6 +103,7 @@ Most packets have a similar base structure, consisting of:
 ## Example Socket Converstions
 
 ### Handshake
+
 ```
 <-> ssl handshake, negotiation for protocol 10bit/0.1
 <-- server sends op=welcome, id="3", ts=234297552342, ex={server: "10b.it", software: "10bit reference server/0.0.1", now: 1373552037052, auth: ["password", "ticket", "anonymous"]}
@@ -113,6 +115,7 @@ Most packets have a similar base structure, consisting of:
 ```
 
 ### Conversation
+
 ```
 --> op=act, rm="deadbeef", ex={message: "message goes here"}
 <-- op=act, id="59", rm="deadbeef", ts=234298362352, sr="lonestarr", ex={message: "message goes here", isack: true}
